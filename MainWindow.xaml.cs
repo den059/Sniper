@@ -90,7 +90,7 @@ namespace Sniper
 
         private void InitBot()
         {
-            LogToUI($"[INIT] Система готова. Стратегия: ЧИСТЫЙ КОНТР-ТРЕНД(Sniper) [{_config.Timeframe}]. Нажмите кнопку 'Запустить'.");
+            LogToUI($"[INIT] Система готова. Стратегия: Sniper(КОНТР-ТРЕНД) [{_config.Timeframe}]. Нажмите кнопку 'Запустить'.");
             // Бэктест оставляем на автозапуске, он не мешает реальной торговле
             _ = Task.Run(() => RunBacktestAsync());
         }
@@ -227,7 +227,7 @@ namespace Sniper
             OrderSide? signal = null;
             string filterLog = "";
 
-            // НАЧАЛО ЧИСТОЙ КОНТР-ТРЕНДОВОЙ(Sniper) ЛОГИКИ
+            // НАЧАЛО Sniper (КОНТР-ТРЕНДОВОЙ) ЛОГИКИ
             bool lowPierced = closedCandle.LowPrice < closedBarBB.Lower;
             bool highPierced = closedCandle.HighPrice > closedBarBB.Upper;
             bool inside = (closedBarPrice > closedBarBB.Lower && closedBarPrice < closedBarBB.Upper);
@@ -413,7 +413,7 @@ namespace Sniper
 
         private async Task RunBacktestAsync()
         {
-            LogToUI($"📊 [BACKTEST] Тест Контр-Тренда(Sniper) за 7 дней ({_config.Timeframe}, RSI L={_config.RsiLongThreshold}, RSI S={_config.RsiShortThreshold}, SL={_config.StopLossPercent * 100m}%, TP1={_config.TakeProfit1Percent * 100m}%, TP2={_config.TakeProfitPercent * 100m}%)");
+            LogToUI($"📊 [BACKTEST] Тест Sniper (Контр-Тренда) за 7 дней ({_config.Timeframe}, RSI L={_config.RsiLongThreshold}, RSI S={_config.RsiShortThreshold}, SL={_config.StopLossPercent * 100m}%, TP1={_config.TakeProfit1Percent * 100m}%, TP2={_config.TakeProfitPercent * 100m}%)");
 
             int totalSignals = 0; int totalWins = 0; int totalLosses = 0; int totalTimeouts = 0; int totalCoins = 0;
 
@@ -503,7 +503,7 @@ namespace Sniper
 
             decimal overallWinRate = totalSignals > 0 ? (totalWins * 100m / totalSignals) : 0m;
             LogToUI("==================================================");
-            LogToUI($"🤖 [КОНТР-ТРЕНД(Sniper) БЭКТЕСТ ЗАВЕРШЕН]");
+            LogToUI($"🤖 [Sniper(КОНТР-ТРЕНД) БЭКТЕСТ ЗАВЕРШЕН]");
             LogToUI($"✅ Общее число сигналов: {totalSignals} | Успешные (TP2): {totalWins} | Провальные (SL): {totalLosses} | Таймауты: {totalTimeouts}");
             LogToUI($"🔥 Истинный WinRate: {overallWinRate:F1}%");
             LogToUI("==================================================");
@@ -517,7 +517,7 @@ namespace Sniper
                 decimal balance = await GetUSDTBalanceAsync();
                 // Найди строку: string modeText = _config.BybitBot_Mode ? ...
                 // Замени её на:
-                string modeText = $"КОНТР-ТРЕНД(Sniper) [{_config.Timeframe}]";
+                string modeText = $"Sniper(КОНТР-ТРЕНД) [{_config.Timeframe}]";
 
 
                 string EscapeMarkdownV2(string text)
