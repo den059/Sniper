@@ -1,5 +1,5 @@
 ﻿
-// ### START MainWindow.xaml.cs ### 
+// ### start MainWindow.xaml.cs ### 
 
 using Bybit.Net;
 using Bybit.Net.Clients;
@@ -556,16 +556,12 @@ namespace Sniper
                                  $"▪️ Режим: {escapedMode}\n" +
                                  $"▪️ Активных монет в пуле: {escapedSymbolsCount}";
 
-                //
-
                 var botClient = new TelegramBotClient(_config.TelegramBotToken.Trim());
                 await botClient.SendMessage(
                     chatId: _config.TelegramChatId.Trim(),
                     text: message,
                     parseMode: ParseMode.MarkdownV2
                 );
-
-                //
 
                 LogToUI("[TELEGRAM] Периодический отчет успешно доставлен в канал!");
             }
@@ -673,5 +669,5 @@ namespace Sniper
 }
 
 
-// ### END MainWindow.xaml.cs ###
+// ### end MainWindow.xaml.cs ###
 
