@@ -100,6 +100,15 @@ namespace Sniper
             if (!File.Exists(ConfigFilePath))
             {
                 SaveConfig();
+                LogToUI("[CONFIG] Создан config.json. Заполните API ключи!");
+                MessageBox.Show("Создан config.json. Заполните API ключи и перезапустите бота!",
+                              "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            if (!File.Exists(ConfigFilePath))
+            {
+                SaveConfig();
                 LogToUI("[CONFIG] Файл config.json создан.");
                 return;
             }
