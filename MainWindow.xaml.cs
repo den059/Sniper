@@ -91,7 +91,6 @@ namespace Sniper
         private void InitBot()
         {
             LogToUI($"[INIT] Система готова. Стратегия: Sniper(КОНТР-ТРЕНД) [{_config.Timeframe}]. Нажмите кнопку 'Запустить'.");
-            // Бэктест оставляем на автозапуске, он не мешает реальной торговле
             _ = Task.Run(() => RunBacktestAsync());
         }
 
