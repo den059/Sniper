@@ -6,7 +6,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Sniper.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="Sniper.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Bybit.Net" Version="7.1.0" />

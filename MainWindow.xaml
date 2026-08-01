@@ -7,7 +7,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Sniper"
         mc:Ignorable="d"
-        Title="Sniper" Height="450" Width="650" Background="#1E1E1E">
+        Title="Sniper" Height="555" Width="650" Background="#1E1E1E">
 
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -15,7 +15,17 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Логи работы торгового бота:" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+
+        <TextBlock Text="Логи работы торгового бота Sniper (КОНТР-ТРЕНД):" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,60,0,5"/>
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" Margin="10,0,10,25">
+            <Button x:Name="StartBtn" Content="▶ Запустить" Width="110" Height="30" Margin="0,0,10,0" Background="#2ecc71" Foreground="White" FontWeight="Bold" Click="StartBtn_Click"/>
+            <Button x:Name="StopBtn" Content="⏸ Остановить" Width="110" Height="30" Margin="0,0,10,0" Background="#e74c3c" Foreground="White" FontWeight="Bold" Click="StopBtn_Click" IsEnabled="False"/>
+            <Button x:Name="RestartBtn" Content="🔄 Перезапуск" Width="110" Height="30" Background="#f39c12" Foreground="White" FontWeight="Bold" Click="RestartBtn_Click" IsEnabled="False"/>
+        </StackPanel>
+
+
+
 
         <!-- Сюда бот будет выводить всю аналитику -->
         <TextBox x:Name="LogTextBox" Grid.Row="1" IsReadOnly="True" VerticalScrollBarVisibility="Auto" 

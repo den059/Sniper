@@ -5,6 +5,12 @@ using System.Collections.Generic;
 
 public class BotConfig
 {
+
+    public string BybitApiKey { get; set; } = "API_KEY";
+    public string BybitApiSecret { get; set; } = "API_SECRET";
+    public string TelegramBotToken { get; set; } = "TELEGRAM_BOT_TOKEN";
+    public string TelegramChatId { get; set; } = "TELEGRAM_CHAT_ID";
+
     public List<string> Symbols { get; set; } = new() { "XRPUSDT", "DOGEUSDT", "SUIUSDT", "XLMUSDT", "ALGOUSDT" };
     public string Timeframe { get; set; } = "ThirtyMinutes"; // Настройка таймфрейма текстом
     public bool AutoApproveMode { get; set; } = true;

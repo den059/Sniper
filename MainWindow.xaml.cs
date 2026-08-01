@@ -21,6 +21,7 @@ using Telegram.Bot;
 using Telegram.Bot.Extensions;
 using Telegram.Bot.Types.Enums;
 using static System.Net.Mime.MediaTypeNames;
+using CryptoExchange.Net.Authentication;
 
 namespace Sniper
 {
@@ -58,7 +59,7 @@ namespace Sniper
         private decimal trailingStopPrice = 0m;
         // Клиент и цикл
         private BybitRestClient _restClient;
-        private bool _isLoopRunning = true;
+        private bool _isLoopRunning = false;
         // Статистика
         private int DailySignalsCount = 0;
         private int DailyTradesOpened = 0;
@@ -66,18 +67,19 @@ namespace Sniper
         private int DailyTradesClosedStop = 0;
         private int lastSentReportHour = -1;
         private DateTime lastOptimizerRunTime = DateTime.Now;
-        // Telegram
-        private string TelegramBotToken = "8848789252:AAFm25ADtbskbaIHWVqYwKB1AbNLGxFXsa0";  //"ТОКЕН_БОТА";
-        private string TelegramChatId = "509104405";     //"CHAT_ID_ИЛИ_КАНАЛА";
 
 
         public MainWindow()
         {
             InitializeComponent();
-            LoadConfig(); // ← Загружаем ПОСЛЕ UI
+            LoadConfig(); // Конфигурация загружается первой, заполняя _config
+
             _restClient = new BybitRestClient(options =>
             {
-                options.ApiCredentials = new BybitCredentials("V52t3up7jjy6uUxFXz", "cHiKqTLEQpvrnd3joiI6SeTPRviaO0kxs4Op");   //("YOUR_API_KEY", "YOUR_API_SECRET");
+                options.ApiCredentials = new BybitCredentials(
+                    _config.BybitApiKey,
+                    _config.BybitApiSecret
+                );
                 options.RequestTimeout = TimeSpan.FromSeconds(60);
                 options.Environment = BybitEnvironment.Live;
             });
@@ -88,8 +90,8 @@ namespace Sniper
 
         private void InitBot()
         {
-            LogToUI($"[INIT] Запуск бота... Стратегия: ЧИСТЫЙ КОНТР-ТРЕНД (Ловец Ножей) [{_config.Timeframe}]");
-            Task.Run(async () => await StartMonitoringLoopAsync());
+            LogToUI($"[INIT] Система готова. Стратегия: ЧИСТЫЙ КОНТР-ТРЕНД(Sniper) [{_config.Timeframe}]. Нажмите кнопку 'Запустить'.");
+            // Бэктест оставляем на автозапуске, он не мешает реальной торговле
             _ = Task.Run(() => RunBacktestAsync());
         }
 
@@ -225,7 +227,7 @@ namespace Sniper
             OrderSide? signal = null;
             string filterLog = "";
 
-            // НАЧАЛО ЧИСТОЙ КОНТР-ТРЕНДОВОЙ ЛОГИКИ
+            // НАЧАЛО ЧИСТОЙ КОНТР-ТРЕНДОВОЙ(Sniper) ЛОГИКИ
             bool lowPierced = closedCandle.LowPrice < closedBarBB.Lower;
             bool highPierced = closedCandle.HighPrice > closedBarBB.Upper;
             bool inside = (closedBarPrice > closedBarBB.Lower && closedBarPrice < closedBarBB.Upper);
@@ -411,7 +413,7 @@ namespace Sniper
 
         private async Task RunBacktestAsync()
         {
-            LogToUI($"📊 [BACKTEST] Тест Контр-Тренда за 7 дней ({_config.Timeframe}, RSI L={_config.RsiLongThreshold}, RSI S={_config.RsiShortThreshold}, SL={_config.StopLossPercent * 100m}%, TP1={_config.TakeProfit1Percent * 100m}%, TP2={_config.TakeProfitPercent * 100m}%)");
+            LogToUI($"📊 [BACKTEST] Тест Контр-Тренда(Sniper) за 7 дней ({_config.Timeframe}, RSI L={_config.RsiLongThreshold}, RSI S={_config.RsiShortThreshold}, SL={_config.StopLossPercent * 100m}%, TP1={_config.TakeProfit1Percent * 100m}%, TP2={_config.TakeProfitPercent * 100m}%)");
 
             int totalSignals = 0; int totalWins = 0; int totalLosses = 0; int totalTimeouts = 0; int totalCoins = 0;
 
@@ -501,7 +503,7 @@ namespace Sniper
 
             decimal overallWinRate = totalSignals > 0 ? (totalWins * 100m / totalSignals) : 0m;
             LogToUI("==================================================");
-            LogToUI($"🤖 [КОНТР-ТРЕНД БЭКТЕСТ ЗАВЕРШЕН]");
+            LogToUI($"🤖 [КОНТР-ТРЕНД(Sniper) БЭКТЕСТ ЗАВЕРШЕН]");
             LogToUI($"✅ Общее число сигналов: {totalSignals} | Успешные (TP2): {totalWins} | Провальные (SL): {totalLosses} | Таймауты: {totalTimeouts}");
             LogToUI($"🔥 Истинный WinRate: {overallWinRate:F1}%");
             LogToUI("==================================================");
@@ -515,7 +517,7 @@ namespace Sniper
                 decimal balance = await GetUSDTBalanceAsync();
                 // Найди строку: string modeText = _config.BybitBot_Mode ? ...
                 // Замени её на:
-                string modeText = $"КОНТР-ТРЕНД [{_config.Timeframe}]";
+                string modeText = $"КОНТР-ТРЕНД(Sniper) [{_config.Timeframe}]";
 
 
                 string EscapeMarkdownV2(string text)
@@ -541,7 +543,7 @@ namespace Sniper
                 string escapedMode = EscapeMarkdownV2(modeText);
                 string escapedSymbolsCount = EscapeMarkdownV2(_config.Symbols.Count.ToString());
 
-                string message = $"🤖 *[BYBIT SNIPER ENTERPRISE — ОТЧЕТ]* 📈\n" +
+                string message = $"🤖 *[SNIPER КОНТР-ТРЕНД ENTERPRISE — ОТЧЕТ]* 📈\n" +
                                  $"⏰ Время среза: {escapedTime}\n" +
                                  $"💰 *ФИНАНСЫ:*\n" +
                                  $"▪️ Текущий баланс ETA: {escapedBalance} USDT\n" +
@@ -554,12 +556,17 @@ namespace Sniper
                                  $"▪️ Режим: {escapedMode}\n" +
                                  $"▪️ Активных монет в пуле: {escapedSymbolsCount}";
 
-                var botClient = new TelegramBotClient(TelegramBotToken.Trim());
+                //
+
+                var botClient = new TelegramBotClient(_config.TelegramBotToken.Trim());
                 await botClient.SendMessage(
-                    chatId: TelegramChatId.Trim(),
+                    chatId: _config.TelegramChatId.Trim(),
                     text: message,
                     parseMode: ParseMode.MarkdownV2
                 );
+
+                //
+
                 LogToUI("[TELEGRAM] Периодический отчет успешно доставлен в канал!");
             }
             catch (Exception ex)
@@ -625,6 +632,43 @@ namespace Sniper
             }
             return rsiValues;
         }
+
+        // Button
+        private void StartBtn_Click(object sender, RoutedEventArgs e)
+        {
+            if (_isLoopRunning) return;
+            _isLoopRunning = true;
+            UpdateButtonsState(true);
+            LogToUI("[SYSTEM] 🟢 Торговый цикл активирован.");
+            Task.Run(async () => await StartMonitoringLoopAsync());
+        }
+
+        private void StopBtn_Click(object sender, RoutedEventArgs e)
+        {
+            _isLoopRunning = false;
+            UpdateButtonsState(false);
+            LogToUI("[SYSTEM] 🛑 Остановка цикла.");
+        }
+
+        private async void RestartBtn_Click(object sender, RoutedEventArgs e)
+        {
+            LogToUI("[SYSTEM] 🔄 Перезапуск...");
+            _isLoopRunning = false;
+            await Task.Delay(1000);
+            LoadConfig(); // Перезагрузка config.json
+            _isLoopRunning = true;
+            _ = Task.Run(async () => await StartMonitoringLoopAsync());
+        }
+
+        // Добавьте вспомогательный метод для удобства
+        private void UpdateButtonsState(bool running)
+        {
+            StartBtn.IsEnabled = !running;
+            StopBtn.IsEnabled = running;
+            RestartBtn.IsEnabled = running;
+        }
+
+
     }
 }
 
