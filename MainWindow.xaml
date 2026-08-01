@@ -1,0 +1,27 @@
+﻿<!--// ### START MainWindow.xaml ###-->
+
+<Window x:Class="Sniper.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"        
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Sniper"
+        mc:Ignorable="d"
+        Title="Sniper" Height="450" Width="650" Background="#1E1E1E">
+
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Логи работы торгового бота:" Foreground="White" FontSize="14" FontWeight="Bold" Margin="0,0,0,5"/>
+
+        <!-- Сюда бот будет выводить всю аналитику -->
+        <TextBox x:Name="LogTextBox" Grid.Row="1" IsReadOnly="True" VerticalScrollBarVisibility="Auto" 
+                 Background="#2D2D2D" Foreground="#00FF00" FontFamily="Consolas" FontSize="12" Padding="5"/>
+    </Grid>
+</Window>
+
+
+<!--// ### END MainWindow.xaml ###-->
