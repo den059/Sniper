@@ -1,4 +1,4 @@
-﻿// ### START Config.cs ###
+﻿// ### start Config.cs ###
 
 
 using System.Collections.Generic;
@@ -29,4 +29,4 @@ public class BotConfig
 
 
 
-// ### END Config.cs ###
+// ### end Config.cs ###

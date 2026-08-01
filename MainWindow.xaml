@@ -1,4 +1,4 @@
-﻿<!--// ### START MainWindow.xaml ###-->
+﻿<!--// ### start MainWindow.xaml ###-->
 
 <Window x:Class="Sniper.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -34,4 +34,4 @@
 </Window>
 
 
-<!--// ### END MainWindow.xaml ###-->
+<!--// ### end MainWindow.xaml ###-->
