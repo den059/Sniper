@@ -311,46 +311,30 @@ namespace Sniper
             if (!isPositionOpen || string.IsNullOrEmpty(symbol) || symbol != openPositionSymbol) return;
 
             OrderSide currentSide = currentPositionSide;
+
+            // Рассчитываем четкие уровни SL и TP (TP1 больше не используется)
             decimal slLevel = currentSide == OrderSide.Buy ? entryPrice * (1m - _config.StopLossPercent) : entryPrice * (1m + _config.StopLossPercent);
-            decimal tp1Level = currentSide == OrderSide.Buy ? entryPrice * (1m + _config.TakeProfit1Percent) : entryPrice * (1m - _config.TakeProfit1Percent);
-            decimal tp2Level = currentSide == OrderSide.Buy ? entryPrice * (1m + _config.TakeProfitPercent) : entryPrice * (1m - _config.TakeProfitPercent);
+            decimal tpLevel = currentSide == OrderSide.Buy ? entryPrice * (1m + _config.TakeProfitPercent) : entryPrice * (1m - _config.TakeProfitPercent);
 
+            LogToUI($"[MONITOR] Позиция {symbol} ({currentSide}): Вход {entryPrice:F4}, SL {slLevel:F4}, TP {tpLevel:F4}, Текущая {currentPrice:F4}");
 
-            LogToUI($"[MONITOR] Позиция {symbol} ({currentSide}): Вход {entryPrice:F4}, SL {slLevel:F4}, TP1 {tp1Level:F4}, TP2 {tp2Level:F4}, Текущая {currentPrice:F4}");
+            bool isTpHit = currentSide == OrderSide.Buy ? currentPrice >= tpLevel : currentPrice <= tpLevel;
+            bool isSlHit = currentSide == OrderSide.Buy ? currentPrice <= slLevel : currentPrice >= slLevel;
 
-            if (!isTp1Executed)
+            if (isTpHit)
             {
-                bool isTp1Hit = (currentSide == OrderSide.Buy && currentPrice >= tp1Level) ||
-                                (currentSide == OrderSide.Sell && currentPrice <= tp1Level);
-                if (isTp1Hit)
-                {
-                    LogToUI($"[TP1 HIT] Уровень TP1 ({tp1Level:F4}) достигнут для {symbol}.");
-                    isTp1Executed = true;
-                    decimal newSlLevel = currentSide == OrderSide.Buy ? entryPrice * 1.001m : entryPrice * 0.999m;
-                    trailingStopPrice = newSlLevel;
-                    LogToUI($"[SL ADJUST] SL виртуально сдвинут в безубыток (~{newSlLevel:F4}) после TP1.");
-                }
-            }
-
-            decimal effectiveSlLevel = isTp1Executed ? trailingStopPrice : slLevel;
-            bool isSlHit = (currentSide == OrderSide.Buy && currentPrice <= effectiveSlLevel) ||
-                           (currentSide == OrderSide.Sell && currentPrice >= effectiveSlLevel);
-            bool isTp2Hit = (currentSide == OrderSide.Buy && currentPrice >= tp2Level) ||
-                            (currentSide == OrderSide.Sell && currentPrice <= tp2Level);
-
-            if (isTp2Hit)
-            {
-                LogToUI($"[TAKE PROFIT] Позиция по {symbol} закрыта по TP2 на уровне ~{currentPrice:F4}.");
+                LogToUI($"[TAKE PROFIT] Позиция по {symbol} закрыта по фиксированному ТР на уровне {currentPrice:F4}.");
                 DailyTradesClosedProfit++;
-                CloseVirtualPosition();
+                CloseVirtualPosition(); // В будущем сюда добавим реальный рыночный ордер закрытия на бирже
             }
             else if (isSlHit)
             {
-                LogToUI($"[STOP LOSS] Позиция по {symbol} закрыта по SL на уровне ~{currentPrice:F4}.");
+                LogToUI($"[STOP LOSS] Позиция по {symbol} закрыта по фиксированному SL на уровне {currentPrice:F4}.");
                 DailyTradesClosedStop++;
                 CloseVirtualPosition();
             }
         }
+
 
         private void CloseVirtualPosition()
         {
@@ -469,36 +453,38 @@ namespace Sniper
                     {
                         coinSignals++; totalSignals++;
                         decimal entry = closedPrice;
+
+                        // Рассчитываем уровни так же, как в реальном трекере
                         decimal sl = isLong ? entry * (1m - _config.StopLossPercent) : entry * (1m + _config.StopLossPercent);
-                        decimal tp1 = isLong ? entry * (1m + _config.TakeProfit1Percent) : entry * (1m - _config.TakeProfit1Percent);
-                        decimal tp2 = isLong ? entry * (1m + _config.TakeProfitPercent) : entry * (1m - _config.TakeProfitPercent);
+                        decimal tp = isLong ? entry * (1m + _config.TakeProfitPercent) : entry * (1m - _config.TakeProfitPercent);
 
-                        bool hitProfit = false; bool hitLoss = false; bool hitTimeout = false; bool tp1Executed = false;
-                        int executionLength = 15;
+                        bool hitProfit = false; bool hitLoss = false;
+                        int executionLength = 0;
 
-                        for (int j = 1; j <= 15 && i + j < candles.Count; j++)
+                        // Убираем жесткое ограничение в 15 свечей — симулируем до победы или стопа в рамках доступной истории (до конца массива)
+                        for (int j = 1; i + j < candles.Count; j++)
                         {
                             var fCandle = candles[i + j];
+                            executionLength = j;
+
                             if (isLong)
                             {
-                                if (fCandle.LowPrice <= sl) { hitLoss = true; executionLength = j; break; }
-                                if (!tp1Executed && fCandle.HighPrice >= tp1) { tp1Executed = true; sl = entry; }
-                                if (tp1Executed && fCandle.HighPrice >= tp2) { hitProfit = true; executionLength = j; break; }
+                                if (fCandle.LowPrice <= sl) { hitLoss = true; break; }
+                                if (fCandle.HighPrice >= tp) { hitProfit = true; break; }
                             }
-                            else
+                            else // Short
                             {
-                                if (fCandle.HighPrice >= sl) { hitLoss = true; executionLength = j; break; }
-                                if (!tp1Executed && fCandle.LowPrice <= tp1) { tp1Executed = true; sl = entry; }
-                                if (tp1Executed && fCandle.LowPrice <= tp2) { hitProfit = true; executionLength = j; break; }
+                                if (fCandle.HighPrice <= sl) { hitLoss = true; break; }
+                                if (fCandle.LowPrice >= tp) { hitProfit = true; break; }
                             }
-                            if (j == 12 && !hitProfit && !hitLoss) { hitTimeout = true; executionLength = 12; break; }
                         }
 
                         allowedIndex = i + executionLength + 1;
                         if (hitLoss) { coinLosses++; totalLosses++; }
                         else if (hitProfit) { coinWins++; totalWins++; }
-                        else if (hitTimeout) { coinTimeouts++; totalTimeouts++; }
+                        // Таймауты ушли, так как сделка теперь всегда имеет логический финал
                     }
+
                 }
 
                 if (coinSignals > 0)
@@ -656,13 +642,20 @@ namespace Sniper
 
         private async void RestartBtn_Click(object sender, RoutedEventArgs e)
         {
-            LogToUI("[SYSTEM] 🔄 Перезапуск...");
+            LogToUI("[SYSTEM] ► Перезапуск бота и обновление конфигурации...");
             _isLoopRunning = false;
             await Task.Delay(1000);
-            LoadConfig(); // Перезагрузка config.json
+
+            LoadConfig(); // Перезагружаем свежие настройки из config.json
             _isLoopRunning = true;
+
+            // Запускаем торговый цикл
             _ = Task.Run(async () => await StartMonitoringLoopAsync());
+
+            // Сразу же запускаем бэктест с новыми параметрами, чтобы обновить статистику!
+            _ = Task.Run(async () => await RunBacktestAsync());
         }
+
 
         // Добавьте вспомогательный метод для удобства
         private void UpdateButtonsState(bool running)
