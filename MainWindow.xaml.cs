@@ -164,10 +164,31 @@ namespace Sniper
         {
             LogToUI("[LOOP] Цикл запущен. Интервал: ~90 сек (+ jitter).");
             var random = new Random();
+
+            Dispatcher.Invoke(() => StatusLabel.Text = "Цикл мониторинга активен");
+
             while (_isLoopRunning)
             {
                 try
                 {
+                    // Каждые 90 секунд запрашиваем баланс для проверки связи с биржей!
+                    decimal balance = await GetUSDTBalanceAsync();
+
+                    Dispatcher.Invoke(() => {
+                        if (balance > 0m)
+                        {
+                            BalanceText.Text = $"{balance:F2} USDT";
+                            BalanceChange.Text = "Связь стабильна ✅";
+                            BalanceChange.Foreground = new SolidColorBrush(Colors.LightGreen);
+                        }
+                        else
+                        {
+                            BalanceText.Text = "0.00 USDT";
+                            BalanceChange.Text = "Ошибка API / 0 баланс ❌";
+                            BalanceChange.Foreground = new SolidColorBrush(Colors.Red);
+                        }
+                    });
+
                     await ExecuteStrategyAsync();
                     await CheckAndSendScheduledReportAsync();
                 }
@@ -179,7 +200,10 @@ namespace Sniper
                 LogToUI($"[SLEEP] Следующая проверка через {delay} сек.");
                 await Task.Delay(TimeSpan.FromSeconds(delay));
             }
+
+            Dispatcher.Invoke(() => StatusLabel.Text = "Цикл мониторинга остановлен");
         }
+
 
         private async Task CheckAndSendScheduledReportAsync()
         {
@@ -501,6 +525,14 @@ namespace Sniper
             LogToUI($"✅ Общее число сигналов: {totalSignals} | Успешные (TP2): {totalWins} | Провальные (SL): {totalLosses} | Таймауты: {totalTimeouts}");
             LogToUI($"🔥 Истинный WinRate: {overallWinRate:F1}%");
             LogToUI("==================================================");
+
+            // Обновление интерфейса при выводе результатов Бэктеста
+            Dispatcher.Invoke(() =>
+            {
+                StatsText.Text = $"Сигналов: {totalSignals} | Побед: {totalWins}";
+                WinRateText.Text = $"WinRate: {overallWinRate:F1}%";
+            });
+
         }
 
 
