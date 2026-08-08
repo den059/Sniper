@@ -66,7 +66,10 @@ namespace Sniper
         private int DailyTradesClosedProfit = 0;
         private int DailyTradesClosedStop = 0;
         private int lastSentReportHour = -1;
+
         private DateTime lastOptimizerRunTime = DateTime.Now;
+        // Добавим глобальный словарь для хранения точности монет
+        private Dictionary<string, int> _symbolQtyDecimals = new Dictionary<string, int>();
 
 
         public MainWindow()
@@ -87,12 +90,52 @@ namespace Sniper
             InitBot();
         }
 
+        // получения спецификаций контрактов с Bybit
+        private async Task LoadSymbolSpecificationsAsync()
+        {
+            try
+            {
+                // Запрашиваем спецификации фьючерсов
+                var result = await _restClient.V5Api.ExchangeData.GetLinearInverseSymbolsAsync(Category.Linear);
+                if (result.Success && result.Data?.List != null)
+                {
+                    var newDict = new Dictionary<string, int>();
+                    foreach (var inst in result.Data.List)
+                    {
+                        // Используем MinOrderQuantity, так как шаг лота на Bybit строго равен минимальному ордеру!
+                        decimal qtyStep = inst.LotSizeFilter?.MinOrderQuantity ?? 1m;
+
+                        // Переводим шаг в количество знаков после запятой (например, 0.1 -> 1, 0.001 -> 3)
+                        int decimals = Math.Max(0, (-Math.Log10((double)qtyStep)).ToString().Contains(".") ?
+                                       Math.Max(0, (int)Math.Ceiling(-Math.Log10((double)qtyStep))) :
+                                       (int)(-Math.Log10((double)qtyStep)));
+
+                        newDict[inst.Name] = decimals;
+                    }
+                    _symbolQtyDecimals = newDict;
+                    LogToUI($"[SYSTEM] Правила лотности Bybit успешно загружены. Монет в базе: {_symbolQtyDecimals.Count}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogToUI($"[ERROR] Не удалось загрузить спецификации лотов: {ex.Message}");
+            }
+        }
+
+
+
 
         private void InitBot()
         {
             LogToUI($"[INIT] Система готова. Стратегия: Sniper(КОНТР-ТРЕНД) [{_config.Timeframe}]. Нажмите кнопку 'Запустить'.");
-            _ = Task.Run(() => RunBacktestAsync());
+
+            // Асинхронно загружаем спецификации Bybit при старте программы
+            _ = Task.Run(async () => {
+                await LoadSymbolSpecificationsAsync();
+                await RunBacktestAsync();
+            });
         }
+
 
 
         private void LoadConfig()
@@ -389,13 +432,16 @@ namespace Sniper
                 decimal tp = side == OrderSide.Buy ? currentPrice * (1m + _config.TakeProfitPercent) : currentPrice * (1m - _config.TakeProfitPercent);
 
 
+                // Восстанавливаем переменную priceDecimals, чтобы не было ошибки CS0103
                 int priceDecimals = (symbol.Contains("SOL") || symbol.Contains("AVAX") || symbol.Contains("LINK") || symbol.Contains("NEAR")) ? 2 : 4;
-                int qtyDecimals = (symbol.Contains("DOGE") || symbol.Contains("XRP") || symbol.Contains("ADA") ||
-                                   symbol.Contains("TRX") || symbol.Contains("XLM") || symbol.Contains("POL")) ? 0 : 1;
+
+                // Динамически берем округление количества монет из базы Bybit
+                int qtyDecimals = _symbolQtyDecimals.ContainsKey(symbol) ? _symbolQtyDecimals[symbol] : 1;
 
                 decimal roundedQuantity = Math.Round(quantity, qtyDecimals);
                 decimal roundedTp = Math.Round(tp, priceDecimals);
                 decimal roundedSl = Math.Round(sl, priceDecimals);
+
 
                 var leverageResult = await _restClient.V5Api.Account.SetLeverageAsync(Category.Linear, symbol, _config.TargetLeverage, _config.TargetLeverage);
                 if (leverageResult.Success) LogToUI($"[LEVERAGE] Плечо {_config.TargetLeverage}x установлено для {symbol}");
