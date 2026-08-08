@@ -102,23 +102,32 @@ namespace Sniper
                 SaveConfig();
                 LogToUI("[CONFIG] Создан config.json. Заполните API ключи!");
                 MessageBox.Show("Создан config.json. Заполните API ключи и перезапустите бота!",
-                              "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            if (!File.Exists(ConfigFilePath))
-            {
-                SaveConfig();
-                LogToUI("[CONFIG] Файл config.json создан.");
+                    "Внимание", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             try
             {
                 string json = File.ReadAllText(ConfigFilePath);
-                var loaded = JsonSerializer.Deserialize<BotConfig>(json);
+
+                // КРИТИЧЕСКИЙ МОМЕНТ: полностью очищаем список по умолчанию перед чтением файла!
+                _config.Symbols?.Clear();
+
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var loaded = JsonSerializer.Deserialize<BotConfig>(json, options);
+
+                // Если в JSON пришел пустой или кривой список монет, подстрахуемся
+                if (loaded != null && (loaded.Symbols == null || loaded.Symbols.Count == 0))
+                {
+                    loaded.Symbols = new List<string> { "DOGEUSDT", "ALGOUSDT" }; // Базовый безопасный дефолт
+                }
+
                 _config = loaded ?? new BotConfig();
-                LogToUI("[CONFIG] Настройки загружены из config.json");
+                LogToUI("[CONFIG] Настройки успешно загружены из config.json");
             }
             catch (Exception ex)
             {
@@ -126,6 +135,7 @@ namespace Sniper
                 LogToUI($"[CONFIG ERROR] {ex.Message}. Используются значения по умолчанию.");
             }
         }
+
 
         private void SaveConfig()
         {
